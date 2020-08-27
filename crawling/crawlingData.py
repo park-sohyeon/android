@@ -1,10 +1,12 @@
 import json
 import re
+import numpy as np
+import pandas as pd
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from collections import OrderedDict
 
-def find_detail_info(productDetail, detail_info):
+def find_detail_info(productDetail, detail_info, exceptLenght):
     result = []
     for npd in productDetail:
         there_is_no_info_True = True
@@ -14,14 +16,17 @@ def find_detail_info(productDetail, detail_info):
                 there_is_no_info_True = False
                 break
         if there_is_no_info_True:
-            result.append(detail_info + ' : 정보없음')
-    
+            result.append(detail_info + ' : null')
+
+    for i in range(len(result)):
+        result[i] = result[i][exceptLenght:]
+
     return result
 
 
 file_data = []
 
-page = list(range(1, 10, 1))
+page = list(range(1, 201, 1))
 for page_number in page:
 
     url = "https://search.shopping.naver.com/search/all?exrental=true&exused=true&frm=NVSHATC&origQuery=%EB%85%B8%ED%8A%B8%EB%B6%81&pagingIndex=" + str(page_number) + "&pagingSize=40&productSet=total&query=%EB%85%B8%ED%8A%B8%EB%B6%81&sort=rel&timestamp=&viewType=list"
@@ -51,12 +56,12 @@ for page_number in page:
             continue
 
 
-    DISPLAY = find_detail_info(needProductDetail, '화면크기') # 제품의 디테일한 정보에서 화면크기 정보 수집
-    CPU_NAME = find_detail_info(needProductDetail, 'CPU :')   # 제품의 디테일한 정보 CPU 정보 수집
-    RESOLUTION = find_detail_info(needProductDetail, '해상도')  # 제품의 디테일한 정보 해상도 정보 수집
-    RAM = find_detail_info(needProductDetail, '램')             # 제품의 디테일한 정보 램 정보 수집
-    STORAGE_SIZE = find_detail_info(needProductDetail, 'SSD')   # 제품의 디테일한 정보 SSD 정보 수집
-    WEIGHT = find_detail_info(needProductDetail, '무게')        # 제품의 디테일한 정보 무게 정보 수집
+    DISPLAY = find_detail_info(needProductDetail, '화면크기', 7) # 제품의 디테일한 정보에서 화면크기 정보 수집
+    CPU_NAME = find_detail_info(needProductDetail, 'CPU :', 6)   # 제품의 디테일한 정보 CPU 정보 수집
+    RESOLUTION = find_detail_info(needProductDetail, '해상도', 6)  # 제품의 디테일한 정보 해상도 정보 수집
+    RAM = find_detail_info(needProductDetail, '램', 4)             # 제품의 디테일한 정보 램 정보 수집
+    STORAGE_SIZE = find_detail_info(needProductDetail, 'SSD', 6)   # 제품의 디테일한 정보 SSD 정보 수집
+    WEIGHT = find_detail_info(needProductDetail, '무게', 5)        # 제품의 디테일한 정보 무게 정보 수집
 
     matrix = [PRODUCT_NAME, PRICE, DISPLAY, CPU_NAME, RESOLUTION, RAM, STORAGE_SIZE, WEIGHT]
     for m in list(zip(*matrix)):
@@ -64,6 +69,8 @@ for page_number in page:
 
 file_data = list(set(file_data))            # 중복 제거
 
-            
+df_notebook = pd.DataFrame(file_data, columns=["PRODUCT_NAME", "PRICE", "DISPLAY", "CPU_NAME", "RESOLUTION", "RAM", "STORAGE_SIZE", "WEIGHT"])
+df_notebook = df_notebook.set_index('PRODUCT_NAME')
+df_notebook.to_json('notebookCrawlingData.json', orient='table', force_ascii = False)
     
-print(json.dumps(file_data, ensure_ascii = False, indent = "\t"))
+# print(json.dumps(file_data, ensure_ascii = False, indent = "\t"))
